@@ -152,6 +152,7 @@ class Infix:
 
     def __init__(self, expression):
         self.expr = expression
+        self.expr_list = self.process_expr()
         self.stack = Stack()
 
     def __repr__(self):
@@ -162,6 +163,38 @@ class Infix:
 
     def __str__(self):
         return self.__repr__()
+
+    def process_expr(self):
+        parts = self.expr.split()
+
+        parts_with_brackets = [
+            part for part in parts
+            if part.startswith('(') or part.endswith(')')
+        ]
+
+        for part in parts_with_brackets:
+            index = parts.index(part)
+
+            if part.startswith('('):
+                bracket, bracket_count, position = '(', part.count('('), index
+                new_part = part[bracket_count:]
+                new_idx = None
+            else:
+                bracket, bracket_count, position = ')', part.count(')'), index + 1
+                new_part = part[:-bracket_count]
+                new_idx = index
+
+            while bracket_count > 0:
+                parts.insert(position, bracket)
+                position += 1
+                bracket_count -= 1
+
+            if new_idx is None:
+                new_idx = position
+
+            parts[new_idx] = new_part
+
+        return parts
 
     def handle_closing_parenthesis(self):
         '''
