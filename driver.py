@@ -1,6 +1,10 @@
 from infixhandler import Infix
 
 
+def print_instructions():
+    pass
+
+
 def main():
     expr = input(
         "Enter the infix expression "

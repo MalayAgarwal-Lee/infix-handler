@@ -1,44 +1,8 @@
+import re
+
+from expr_parser import parse
 from stack import Stack
-
-# Dictionary to keep track of the operators supported by the program
-# And their precedence
-OPERATORS = {
-    '+': 1,
-    '-': 1,
-    '*': 2,
-    '/': 2,
-    '%': 2,
-    '^': 3,
-    '(': 0,
-    ')': None,
-}
-
-
-def operator_map(op, left_opr, right_opr):
-    '''
-    Function to map an operator to its equivalent Python operation
-
-    It avoids if statements by using a dictionary look-up in its place
-
-    Arguments:
-        op: str, the operator which needs to be mapped
-        left_opr: int, the left operand for the operator
-        right_opr: int, the right operand for the operator
-
-    Returns:
-        The numeric value obtained by performing the operation
-
-    Raises:
-        KeyError when an unsupported operand is passed
-    '''
-    return {
-        '+': left_opr + right_opr,
-        '-': left_opr - right_opr,
-        '*': left_opr * right_opr,
-        '/': left_opr / right_opr,
-        '%': left_opr % right_opr,
-        '^': left_opr ** right_opr,
-    }[op]
+from operators import OPERATORS, operator_map
 
 
 class Postfix:
@@ -152,7 +116,7 @@ class Infix:
 
     def __init__(self, expression):
         self.expr = expression
-        self.expr_list = self.process_expr()
+        self.tokens = self.parse_expr()
         self.stack = Stack()
 
     def __repr__(self):
@@ -164,37 +128,35 @@ class Infix:
     def __str__(self):
         return self.__repr__()
 
-    def process_expr(self):
-        parts = self.expr.split()
+    def parse_expr(self):
+        expr = re.sub(r'\( - ((?:\d )+)\)', r'( UMINUS \1)', self.expr)
+        parse(expr)
 
-        parts_with_brackets = [
-            part for part in parts
-            if part.startswith('(') or part.endswith(')')
-        ]
+        length, i = len(expr), 0
+        tokens = []
 
-        for part in parts_with_brackets:
-            index = parts.index(part)
+        while i < length:
+            char = expr[i]
 
-            if part.startswith('('):
-                bracket, bracket_count, position = '(', part.count('('), index
-                new_part = part[bracket_count:]
-                new_idx = None
+            if char.isspace():
+                i += 1
+                continue
+
+            if char == 'U':
+                end = expr.find(' ', i)
+                tokens.append(expr[i:end])
+                i = end + 1
+            elif char.isdigit():
+                end = i + 1
+                while expr[end] not in OPERATORS.keys():
+                    end += 1
+                tokens.append(expr[i:end - 1])
+                i = end
             else:
-                bracket, bracket_count, position = ')', part.count(')'), index + 1
-                new_part = part[:-bracket_count]
-                new_idx = index
+                tokens.append(char)
+                i += 1
 
-            while bracket_count > 0:
-                parts.insert(position, bracket)
-                position += 1
-                bracket_count -= 1
-
-            if new_idx is None:
-                new_idx = position
-
-            parts[new_idx] = new_part
-
-        return parts
+        return tokens
 
     def handle_closing_parenthesis(self):
         '''
