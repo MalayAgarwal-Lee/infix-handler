@@ -147,12 +147,10 @@ class Infix:
                 tokens.append(expr[i:end])
                 i = end + 1
             elif char.isdigit():
-                end = i + 2
-                token = ''
+                end = i + 1
                 while expr[end] not in OPERATORS.keys():
-                    if not expr[end].isspace():
-                        token += expr[end]
-                tokens.append(int(token))
+                    end += 1
+                tokens.append([x for x in expr[i:end - 1] if not x.isspace()])
                 i = end
             else:
                 tokens.append(char)
