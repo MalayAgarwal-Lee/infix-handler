@@ -110,7 +110,7 @@ class SLRParser:
             self.update_tokens(char, i)
             if char == 'U':
                 char = self.tokens[-1]
-                increment = self.token_indices[-1]
+                increment = self.token_indices[-1] - i + 2
 
 
             entry = self.get_entry(tos, char)
