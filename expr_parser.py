@@ -44,7 +44,7 @@ class SLRParser:
         self.action, self.goto = get_parse_tables('parse_table.html')
         self.string = string + '$'
         self.tokens = []
-        self.token_indices = set()
+        self.token_indices = []
 
     def get_numeric_token(self, index):
         length = len(self.string)
@@ -59,23 +59,16 @@ class SLRParser:
         return self.string[index:end], end
 
     def update_tokens(self, char, index):
-        if char == 'U':
-            token, end = self.get_unary_op_token(char, index)
-        elif char.isdigit():
-            token, end = self.get_numeric_token(index)
-        else:
-            token, end =  char, index + 1
+        if index not in self.token_indices and char != '$':
+            if char == 'U':
+                token, end = self.get_unary_op_token(char, index)
+            elif char.isdigit():
+                token, end = self.get_numeric_token(index)
+            else:
+                token, end =  char, index + 1
 
-        self.tokens.append(token)
-        self.token_indices.update({index for index in range(index, end)})
-
-        increment = None
-
-        if char == 'U':
-            char = token
-            increment = end - index + 1
-
-        return char, increment
+            self.tokens.append(token)
+            self.token_indices.extend([index for index in range(index, end)])
 
     def get_entry(self, tos, char):
         try:
@@ -114,11 +107,11 @@ class SLRParser:
                 i += increment
                 continue
 
-            if i not in self.token_indices and char != '$':
-                char, temp_inc = self.update_tokens(char, i)
+            self.update_tokens(char, i)
+            if char == 'U':
+                char = self.tokens[-1]
+                increment = self.token_indices[-1]
 
-                if temp_inc:
-                    increment = temp_inc
 
             entry = self.get_entry(tos, char)
             if entry == 'acc':
