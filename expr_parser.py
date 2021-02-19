@@ -20,16 +20,6 @@ from stack import Stack
 from operators import OPERATORS
 
 
-PRODUCTIONS = [
-    ('E', 'E+T'), ('E', 'E-T'), ('E', 'T'),
-    ('T', 'T*F'), ('T', 'T/F'), ('T', 'T%F'), ('T', 'F'),
-    ('F', '(E)'), ('F', '(-F)'), ('F', 'N'),
-    ('N', 'ND'), ('N', 'D'),
-    ('D', '0'), ('D', '1'), ('D', '2'), ('D', '3'),
-    ('D', '4'), ('D', '5'), ('D', '6'), ('D', '7'), ('D', '8'), ('D', '9')
-]
-
-
 def get_parse_tables(filename):
     with open(filename, 'r') as f:
         df = pd.read_html(f.read())[0]
@@ -40,6 +30,16 @@ def get_parse_tables(filename):
 
 
 class SLRParser:
+
+    productions = [
+        ('E', 'E+T'), ('E', 'E-T'), ('E', 'T'),
+        ('T', 'T*F'), ('T', 'T/F'), ('T', 'T%F'), ('T', 'F'),
+        ('F', '(E)'), ('F', '(-F)'), ('F', 'N'),
+        ('N', 'ND'), ('N', 'D'),
+        ('D', '0'), ('D', '1'), ('D', '2'), ('D', '3'),
+        ('D', '4'), ('D', '5'), ('D', '6'), ('D', '7'), ('D', '8'), ('D', '9')
+    ]
+
     def __init__(self, string):
         self.action, self.goto = get_parse_tables('parse_table.html')
         self.string = string + '$'
@@ -86,7 +86,7 @@ class SLRParser:
 
     def reduce(self, entry, s):
         prod_num = int(entry[1:])
-        head, expansion = PRODUCTIONS[prod_num - 1]
+        head, expansion = self.productions[prod_num - 1]
         for _ in range(len(expansion)):
             s.pop()
         tos = s.tos()
