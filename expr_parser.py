@@ -17,6 +17,7 @@ from os import stat
 import pandas as pd
 
 from stack import Stack
+from operators import OPERATORS
 
 
 PRODUCTIONS = [
@@ -38,49 +39,96 @@ def get_parse_tables(filename):
         return df.loc[:, '+':'$'], df.loc[:, 'E':]
 
 
-def parse(string):
-    s = Stack()
-    s.push(0)
+class SLRParser:
+    def __init__(self, string):
+        self.action, self.goto = get_parse_tables('parse_table.html')
+        self.string = string + '$'
+        self.tokens = []
+        self.token_indices = set()
 
-    string = string + '$'
+    def get_numeric_token(self, index):
+        length = len(self.string)
+        end = index + 1
+        while end < length and self.string[end] not in OPERATORS.keys():
+            end += 1
+        end = end - 1
+        return self.string[index:end].replace(" ", ''), end
 
-    action, goto = get_parse_tables('parse_table.html')
-    i = 0
+    def get_unary_op_token(self, char, index):
+        end = self.string.find(' ', index)
+        return self.string[index:end], end
 
-    while True:
-        tos = s.tos()
-        char = string[i]
-        increment = 1
+    def update_tokens(self, char, index):
+        if char == 'U':
+            token, end = self.get_unary_op_token(char, index)
+        elif char.isdigit():
+            token, end = self.get_numeric_token(index)
+        else:
+            token, end =  char, index + 1
 
-        if char.isspace():
-            i += increment
-            continue
+        self.tokens.append(token)
+        self.token_indices.update({index for index in range(index, end)})
+
+        increment = None
 
         if char == 'U':
-            end = string.find(' ', i)
-            char = string[i:end]
-            increment = end - i + 1
+            char = token
+            increment = end - index + 1
 
+        return char, increment
+
+    def get_entry(self, tos, char):
         try:
-            entry = action.iloc[tos][char]
+            entry = self.action.iloc[tos][char]
         except IndexError:
             raise SyntaxError("Invalid character in expression")
 
         if not entry:
             raise SyntaxError("Invalid expression.")
 
-        if entry == 'acc':
-            break
+        return entry
 
-        if entry.startswith('s'):
-            state = int(entry[1:])
-            i += increment
-        else:
-            prod_num = int(entry[1:])
-            head, expansion = PRODUCTIONS[prod_num - 1]
-            for _ in range(len(expansion)):
-                s.pop()
+    def shift(self, entry, index, increment):
+        return int(entry[1:]), index + increment
+
+    def reduce(self, entry, s):
+        prod_num = int(entry[1:])
+        head, expansion = PRODUCTIONS[prod_num - 1]
+        for _ in range(len(expansion)):
+            s.pop()
+        tos = s.tos()
+        return int(self.goto.iloc[tos][head])
+
+    def parse(self):
+        s, string = Stack(), self.string
+        s.push(0)
+
+        i = 0
+
+        while True:
             tos = s.tos()
-            state = int(goto.iloc[tos][head])
+            char = string[i]
+            increment = 1
 
-        s.push(state)
+            if char.isspace():
+                i += increment
+                continue
+
+            if i not in self.token_indices and char != '$':
+                char, temp_inc = self.update_tokens(char, i)
+
+                if temp_inc:
+                    increment = temp_inc
+
+            entry = self.get_entry(tos, char)
+            if entry == 'acc':
+                break
+
+            if entry.startswith('s'):
+                state, i = self.shift(entry, i, increment)
+            else:
+                state = self.reduce(entry, s)
+
+            s.push(state)
+
+        return self.tokens

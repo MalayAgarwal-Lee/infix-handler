@@ -1,6 +1,6 @@
 import re
 
-from expr_parser import parse
+from expr_parser import SLRParser
 from stack import Stack
 from operators import OPERATORS, operator_map
 
@@ -130,34 +130,9 @@ class Infix:
 
     def parse_expr(self):
         expr = re.sub(r'\( - ((?:\d )+)\)', r'( UMINUS \1)', self.expr)
-        parse(expr)
 
-        length, i = len(expr), 0
-        tokens = []
-
-        while i < length:
-            char = expr[i]
-
-            if char.isspace():
-                i += 1
-                continue
-
-            if char == 'U':
-                end = expr.find(' ', i)
-                tokens.append(expr[i:end])
-                i = end + 1
-            elif char.isdigit():
-                end = i + 1
-                while expr[end] not in OPERATORS.keys():
-                    end += 1
-                token = expr[i:end - 1].replace(" ", '')
-                tokens.append(int(token))
-                i = end
-            else:
-                tokens.append(char)
-                i += 1
-
-        return tokens
+        parser = SLRParser(expr)
+        return parser.parse()
 
     def handle_closing_parenthesis(self):
         '''
