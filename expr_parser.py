@@ -47,7 +47,7 @@ def parse(string):
     action, goto = get_parse_tables('parse_table.html')
     i = 0
 
-    while s.tos() != 1:
+    while True:
         tos = s.tos()
         char = string[i]
         increment = 1
@@ -68,6 +68,9 @@ def parse(string):
 
         if not entry:
             raise SyntaxError("Invalid expression.")
+
+        if entry == 'acc':
+            break
 
         if entry.startswith('s'):
             state = int(entry[1:])
